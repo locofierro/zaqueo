@@ -47,6 +47,26 @@ const HELPER = {
 
         cashDiscount: (basePrize) => basePrize - (basePrize * BUSINESS.SETTINGS.cashDiscount),
 
+        processProductPage: () => {
+
+            if (!HELPER.BUSINESS.SETTINGS.productEnabled) { 
+
+                console.debug('Product replacements DISABLED');
+                
+                return;
+
+            }
+
+            console.debug('Product replacements ENABLED');
+
+            let basePrize = HELPER.QUERIES.getProductBasePrize();
+
+            console.debug('Product base prize:', basePrize);
+
+            HELPER.HTML.PRODUCT.replaceProductPricing(basePrize);
+
+        },
+
     },
 
     HTML: {
@@ -93,8 +113,6 @@ const HELPER = {
                 let block = HELPER.HTML.buildProductPrizeBlock(basePrize);
 
                 let startingBlock = u(document.getElementsByClassName('product-vip__price')[0]);
-
-                startingBlock.after(block[2]);
 
                 startingBlock.after(block[1]);
 
@@ -187,18 +205,7 @@ REPLACEMENTS[HELPER.BUSINESS.CONSTANTS.LIST] = () => {
 
 }
 
-REPLACEMENTS[HELPER.BUSINESS.CONSTANTS.PRODUCT] = () => { 
-
-    if (!HELPER.BUSINESS.SETTINGS.productEnabled) { 
-
-        console.debug('Product replacements DISABLED');
-        
-        return;
-
-    }
-
-
-}
+REPLACEMENTS[HELPER.BUSINESS.CONSTANTS.PRODUCT] = HELPER.BUSINESS.processProductPage;
 
 
 
@@ -220,12 +227,15 @@ window.onload = (event) => {
 
   console.debug("Page type:", pageType);
 
+  REPLACEMENTS[pageType]();
+
+  /*
   if (pageType === 'product') {
 
     let basePrize = HELPER.QUERIES.getProductBasePrize();
 
     console.debug('Product base prize:', basePrize);
 
-  }
+  }*/
 
 };
