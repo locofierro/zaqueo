@@ -13,77 +13,194 @@ $(document).ajaxComplete(function(event, xhr, settings) {
 
 */
 
-function getPageType() {
 
-    let isCheckout = window.location.pathname == '/checkout';
 
-    if (isCheckout) return 'checkout';
+const HELPER = {
 
-    let isProductPage = document.getElementById("add_to_cart-btn");
+    BUSINESS: {
 
-    let cartIsOpen = document.getElementById("cart-sidenav").checkVisibility();
+        CONSTANTS: {
 
-    return cartIsOpen 
-    
-        ? 'cart'
+            CART: 'cart',
 
-        : isProductPage 
+            CHECKOUT: 'checkout',
+
+            LIST: 'list',
+
+            PRODUCT: 'product'
+
+        },
+
+        SETTINGS: {
+
+            cartEnabled: false,
+
+            checkoutEnabled: false,
+
+            listEnabled: false,
+
+            productEnabled: true,
+
+            cashDiscount: 0.1,
+
+        },
+
+        cashDiscount: (basePrize) => basePrize - (basePrize * BUSINESS.SETTINGS.cashDiscount),
+
+    },
+
+    HTML: {
+
+        CART: {
+
+        },
+
+        CHECKOUT: {
+
+        },
+
+        LIST: {
+
+        },
+
+
+        PRODUCT: {
+
+            buildProductPrizeBlock: (basePrize) => {
+
+                let moneyParser = new Intl.NumberFormat('es-AR');
+
+                let noDiscount = moneyParser.format(basePrize);
+
+                let cashDiscount = moneyParser.format(HELPER.BUSINESS.cashDiscount(basePrize));
+
+                let result = [];
+
+                let baseLine = (prize, desc, style="") => `<p class="product-vip__price uk-flex uk-flex-middle text--primary" ${style}><span class="product-vip__price-value">$${prize} ${desc}</span></p>`;
+
+                let styleLine = 'style="background-color:#00A86B; color:white"';
+
+                result.push(baseLine(cashDiscount, "efectivo / transferencia", styleLine));
+
+                result.push(baseLine(noDiscount, "tarjeta - 3 cuotas sin interes"));
+
+                return result;
+
+            },
+
+            replaceProductPricing : (basePrize) => {
+
+                let block = HELPER.HTML.buildProductPrizeBlock(basePrize);
+
+                let startingBlock = u(document.getElementsByClassName('product-vip__price')[0]);
+
+                startingBlock.after(block[2]);
+
+                startingBlock.after(block[1]);
+
+                startingBlock.replace(block[0]);
+
+            },
+
+        }
+
+    }, 
+
+    QUERIES: {
+
+        getProductBasePrize: () => {
+
+            let rawPrize = document.getElementsByClassName('product-vip__price-value')[0].innerHTML.trim();
+
+            let prize = Number(rawPrize.split(',')[0].replaceAll('$', '').replaceAll('.',''));
+
+            return prize;
+
+        },
+
+    },
+
+    ROUTE: {
+
+        getPageType: () => {
+
+            let isCheckout = window.location.pathname == '/checkout';
+
+            if (isCheckout) return 'checkout';
+
+            let isProductPage = document.getElementById("add_to_cart-btn");
+
+            let cartIsOpen = document.getElementById("cart-sidenav").checkVisibility();
+
+            return cartIsOpen 
+            
+                ? 'cart'
+
+                : isProductPage 
+                
+                    ? 'product'
+
+                    : 'list';
+
+        }
+
+    },
+
+}
+
+
+const REPLACEMENTS = {};
+
+REPLACEMENTS[HELPER.BUSINESS.CONSTANTS.CART] = () => {
+
+    if (!HELPER.BUSINESS.SETTINGS.cartEnabled) { 
+
+        console.debug('Cart replacements DISABLED');
         
-            ? 'product'
+        return;
 
-            : 'list';
-
-}
-
-function getProductBasePrize() {
-
-    let rawPrize = document.getElementsByClassName('product-vip__price-value')[0].innerHTML.trim();
-
-    let prize = Number(rawPrize.split(',')[0].replaceAll('$', '').replaceAll('.',''));
-
-    return prize;
+    }
 
 }
 
-function buildProductPrizeBlock(basePrize) {
+REPLACEMENTS[HELPER.BUSINESS.CONSTANTS.CHECKOUT] = () => {
 
-    let moneyParser = new Intl.NumberFormat('es-AR');
+    if (!HELPER.BUSINESS.SETTINGS.checkoutEnabled) { 
 
-    let noDiscount = moneyParser.format(basePrize);
+        console.debug('Checkout replacements DISABLED');
+        
+        return;
 
-    let cashDiscount = moneyParser.format(basePrize - (basePrize * 0.1));
-
-    let bulkDiscount = moneyParser.format(basePrize - (basePrize * 0.2));
-
-    let result = [];
-
-    let baseLine = (prize, desc, style="") => `<p class="product-vip__price uk-flex uk-flex-middle text--primary" ${style}><span class="product-vip__price-value">$${prize} ${desc}</span></p>`;
-
-    let styleLine = 'style="background-color:#00A86B; color:white"';
-
-    result.push(baseLine(noDiscount, "tarjeta - 3 cuotas sin interes"));
-
-    result.push(baseLine(cashDiscount, "efectivo / transferencia"));
-
-    result.push(baseLine(bulkDiscount, "mayorista", styleLine));
-
-    return result;
+    }
 
 }
 
-function replaceProductPricing(basePrize) {
+REPLACEMENTS[HELPER.BUSINESS.CONSTANTS.LIST] = () => {
 
-    let block = buildProductPrizeBlock(basePrize);
+    if (!HELPER.BUSINESS.SETTINGS.listEnabled) { 
 
-    let startingBlock = u(document.getElementsByClassName('product-vip__price')[0]);
+        console.debug('List replacements DISABLED');
+        
+        return;
 
-    startingBlock.after(block[2]);
-
-    startingBlock.after(block[1]);
-
-    startingBlock.replace(block[0]);
+    }
 
 }
+
+REPLACEMENTS[HELPER.BUSINESS.CONSTANTS.PRODUCT] = () => { 
+
+    if (!HELPER.BUSINESS.SETTINGS.productEnabled) { 
+
+        console.debug('Product replacements DISABLED');
+        
+        return;
+
+    }
+
+
+}
+
+
 
 window.onload = (event) => {
 
@@ -99,13 +216,13 @@ window.onload = (event) => {
 
   console.debug("Page loaded correctly");
 
-  let pageType = getPageType();
+  let pageType = HELPER.ROUTE.getPageType();
 
   console.debug("Page type:", pageType);
 
   if (pageType === 'product') {
 
-    let basePrize = getProductBasePrize();
+    let basePrize = HELPER.QUERIES.getProductBasePrize();
 
     console.debug('Product base prize:', basePrize);
 
